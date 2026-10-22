@@ -25,13 +25,15 @@ sed -i "/pub static ref APP_NAME:/s/\"RustDesk\"/\"$NOM\"/" "$F"
 
 # 2. Mode sortant seulement (is_outgoing_only lit HARD_SETTINGS["conn-type"]) :
 #    pas d'inscription sur un serveur, pas de second ID, aucune connexion entrante.
+#    HashMap::from et non [..].into_iter().collect() : hbb_common est en edition
+#    2018, ou into_iter() sur un tableau parcourt des references (echec E0277).
 if ! grep -q 'pub static ref HARD_SETTINGS: RwLock<HashMap<String, String>> = Default::default();' "$F"; then
   echo "Motif HARD_SETTINGS introuvable dans $F"
   exit 1
 fi
-sed -i '/pub static ref HARD_SETTINGS:/s/Default::default()/RwLock::new([("conn-type".to_owned(), "outgoing".to_owned())].into_iter().collect())/' "$F"
+sed -i '/pub static ref HARD_SETTINGS:/s/Default::default()/RwLock::new(HashMap::from([("conn-type".to_owned(), "outgoing".to_owned())]))/' "$F"
 
 # Verification : les deux lignes retouchees doivent etre presentes.
 grep -n "pub static ref APP_NAME: RwLock<String> = RwLock::new(\"$NOM\".to_owned());" "$F"
-grep -n 'pub static ref HARD_SETTINGS: RwLock<HashMap<String, String>> = RwLock::new(\[("conn-type".to_owned(), "outgoing".to_owned())\].into_iter().collect());' "$F"
+grep -n 'pub static ref HARD_SETTINGS: RwLock<HashMap<String, String>> = RwLock::new(HashMap::from(\[("conn-type".to_owned(), "outgoing".to_owned())\]));' "$F"
 echo "Retouches appliquees : APP_NAME=$NOM, conn-type=outgoing"
